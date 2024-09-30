@@ -1,0 +1,10 @@
+{
+    "model": "PseudoIsingBlockState",
+    "nodes": 90,
+    "edges": 150,
+    "samples": 250,
+    "jaccard_unweighted": 0.17445482866043613,
+    "jaccard_weighted": 0.15252573313492312,
+    "runtime": 34.02454900741577,
+    "creation_date": "27-09-2024/22:21:31"
+}

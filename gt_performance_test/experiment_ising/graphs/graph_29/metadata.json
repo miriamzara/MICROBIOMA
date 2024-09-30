@@ -1,0 +1,17 @@
+{
+    "_header": {
+        "author": "Miriam Zara",
+        "creation_date": "29-09-2024/12:20:58",
+        "description": "The graph is generated using method graph-tool.generation.random_graph(model= 'blockmodel). The number of partitions is set to N^(1/3) - lowest integer from bottom, the probability of intra-partition and inter-partition edges is given by 0.999 and 0.001, leading most likely to anumber of connected components equal to the number of partitions. The degree distribution is poisson. Grpah is undirected, with no self loops and no multiedges."
+    },
+    "graph_type": "SBM",
+    "nodes": 10,
+    "edges": 15,
+    "directed": "false",
+    "degree_distribution": "poisson",
+    "power_law_exponent": null,
+    "mean_degree": 3.0,
+    "edge_density": 0.3,
+    "correlations": "false",
+    "weight": 0.3333333333333333
+}

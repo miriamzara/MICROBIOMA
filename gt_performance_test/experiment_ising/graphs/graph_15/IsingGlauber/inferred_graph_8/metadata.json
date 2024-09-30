@@ -1,0 +1,9 @@
+{
+    "nodes": 30,
+    "edges": 39,
+    "samples": 300,
+    "jaccard_unweighted": 0.6868686868686869,
+    "jaccard_weighted": 0.59321281995031,
+    "runtime": 4.6824657917022705,
+    "creation_date": "27-09-2024/19:27:43"
+}

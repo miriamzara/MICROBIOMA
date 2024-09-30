@@ -1,0 +1,13 @@
+{
+    "graph_type": "SBM",
+    "nodes": 60,
+    "edges": 99,
+    "directed": "false",
+    "degree_distribution": "poisson",
+    "power_law_exponent": null,
+    "mean_degree": 3.3,
+    "edge_density": 0.055,
+    "correlations": "false",
+    "weight": 0.30303030303030304,
+    "creation_date": "27-09-2024/18:16:54"
+}
