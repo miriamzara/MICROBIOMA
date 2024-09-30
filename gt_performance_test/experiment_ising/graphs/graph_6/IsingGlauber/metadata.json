@@ -1,8 +1,0 @@
-{
-    "dynamics": "IsingGlauber",
-    "nodes": 2048,
-    "samples": 100000,
-    "execution_time": 6.132652044296265,
-    "initial_state": "random",
-    "creation_date": "11-09-2024/13:14:44"
-}
