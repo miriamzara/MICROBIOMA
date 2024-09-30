@@ -1,0 +1,10 @@
+{
+    "dynamics": "IsingGlauber",
+    "nodes": 65,
+    "samples": 1000,
+    "execution_time": 0.003370046615600586,
+    "beta": 1.0,
+    "h": 0,
+    "initial_state": "random",
+    "creation_date": "27-09-2024/18:38:37"
+}

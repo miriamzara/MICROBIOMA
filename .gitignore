@@ -1,0 +1,15 @@
+# macOS files
+.DS_Store
+
+# large datasets
+*.h5
+
+# graph-tool graphs
+*.gt
+
+# virtual environment
+/myenv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
