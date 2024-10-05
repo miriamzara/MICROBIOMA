@@ -67,6 +67,14 @@ class Mice_Inspection():
 
     format_for_regression():
 
+    Outputs:
+    --------
+    Data:
+        Directory containing formatted data.
+    Inspection_Outputs/Stacked:
+        Directory containing stacked bar plots.
+    Inspection_Outputs/Species:
+        Directory containing species-specific plots (es: time series).
     """
 
     def __init__(self, ip, op, mdp):
@@ -83,6 +91,8 @@ class Mice_Inspection():
         metadata_path : str
             Path to the metadata CSV file.
         """
+        self.output_dir = "Inspection_Outputs"
+        os.makedirs(self.output_dir, exist_ok = True)
         self.op = op
         self.subjects = 8
         if not os.path.exists(op[0]):
@@ -284,66 +294,70 @@ class Mice_Inspection():
         return interpolated_df_list
 
 
-    def select_species(self, max_rank, by = 'median', sort = 'alphabetic', return_csv = False) -> list:
-        """""
-        Returns the list of the union of all species that appear with rank <= max rank in mice
-        The list is automatically sorted in alphabetical order A to Z
-        By default, the species rank is assigned based on the mean counts
-        The code can be modified to consider the median count instead.
-        """""
-        output_dir = os.path.join("Data", "by_species")
-        os.makedirs(output_dir, exist_ok=True)
+    def sort_species(self, max_rank: int = None, sorting_criterion: str = 'mean', write_csv: bool = True) -> list:
+        """
+        For each species in the dataset, extract the mean (or median) count across all subjects. Computes the global mean (or median).
+        Returns a .csv file with columns ['species', 'mean_subject_1', ... mean_subject_N', 'global_mean'] (or median).
+        Returns also a list of the first max_rank species. If max_rank is None or outside the range, all species are returned.
+        """
+        if write_csv:
+            output_dir = os.path.join('Data', 'by_species')
+            os.makedirs(output_dir, exist_ok=True)
+            output_path = os.path.join('Data', 'by_species', f'{sorting_criterion}:{max_rank}_sorted.csv')
         if not (isinstance(max_rank, int) and max_rank > 1):
             raise ValueError("max rank must be a positive integer")
-        if not sort in ['alphabetic', 'byrank']:
-            raise ValueError("sorting must be 'alphabetic' or 'byrank' ")
-        if not by in ['median', 'mean']:
-            raise ValueError("parameter 'by' must be 'mean' or 'median' ")
-
-        self.mice_df = self.get_mice_df(sort_by= by)
-        selected_species = []
-        for n in range(self.subjects):
-            temp = self.mice_df[n].iloc[0: min(max_rank, len(self.mice_df[n]))]["species"].tolist()
-            selected_species.append(temp)
-        selected_species = np.unique(selected_species).tolist() #already sorted in alph. order
-        if sort == 'byrank':
-            indexes = [self.mice_df[0][self.mice_df[0]['species'] == s].index[0] for s in selected_species]
-            selected_species = [species for _, species in sorted(zip(indexes, selected_species))]
-        ## save csv table as output ##
-        if return_csv == True:
-            data = []
-            for s in selected_species:
-                idxs = []
-                for mouse in range(self.subjects):
-                    if not self.mice_df[mouse][self.mice_df[mouse]['species'] == s].empty:
-                         idxs.append(self.mice_df[mouse][self.mice_df[mouse]['species'] == s].index[0])
-                    else:
-                        idxs.append(np.nan)
+        if not sorting_criterion in ['mean', 'median']:
+            raise ValueError("sorting criterion must be 'mean' or 'median'")
+        
+        species_data = []
+        if sorting_criterion == 'mean':
+            for species in self.species_list:
                 mean_counts = []
-                median_counts = []
                 for mouse in range(self.subjects):
-                    if not np.isnan(idxs[mouse]):
-                        mean_counts.append(self.mice_df[mouse]['mean_counts'].iloc[idxs[mouse]])
-                        median_counts.append(self.mice_df[mouse]['median_counts'].iloc[idxs[mouse]])
+                    # If the species appear, extract the mean (or median) count
+                    temp = self.mice_df[mouse][self.mice_df[mouse]['species'] == species]
+                    if not temp.empty:
+                        mean_counts.append(temp[sorting_criterion + '_counts'].iloc[0])
                     else:
                         mean_counts.append(0)
+                global_mean = np.mean(mean_counts)
+                species_data.append({'species': species, 'global_mean': global_mean, 'mean_subject_1': mean_counts[0], 'mean_subject_2': mean_counts[1], 'mean_subject_3': mean_counts[2], 'mean_subject_4': mean_counts[3], 'mean_subject_5': mean_counts[4], 'mean_subject_6': mean_counts[5], 'mean_subject_7': mean_counts[6], 'mean_subject_8': mean_counts[7]})
+                df = pd.DataFrame(species_data)
+                df.sort_values(by= 'global_mean', ascending=False, inplace=True)
+                df.reset_index(drop=True, inplace=True)
+
+        if sorting_criterion == 'median':
+            for species in self.species_list:
+                median_counts = []
+                for mouse in range(self.subjects):
+                    # If the species appear, extract the mean (or median) count
+                    temp = self.mice_df[mouse][self.mice_df[mouse]['species'] == species]
+                    if not temp.empty:
+                        median_counts.append(temp[sorting_criterion + '_counts'].iloc[0])
+                    else:
                         median_counts.append(0)
-                mean = np.mean(mean_counts)
-                median = np.mean(median_counts)
-                data.append({'species': s, 'median': median, 'mean': mean})
-            df = pd.DataFrame(data)
-            df.sort_values(by= by, ascending=False, inplace=True)
-            df.reset_index(drop=True, inplace=True)
-            output_path = os.path.join(output_dir, f"table_{max_rank}_by_{by}.csv")
+                global_median = np.median(median_counts)
+                species_data.append({'species': species, 'global_median': global_median, 'median_subject_1': median_counts[0], 'median_subject_2': median_counts[1], 'median_subject_3': median_counts[2], 'median_subject_4': median_counts[3], 'median_subject_5': median_counts[4], 'median_subject_6': median_counts[5], 'median_subject_7': median_counts[6], 'median_subject_8': median_counts[7]})
+                df = pd.DataFrame(species_data)
+                df.sort_values(by= 'global_median', ascending=False, inplace=True)
+                df.reset_index(drop=True, inplace=True)
+                
+        selected_species = df['species'].tolist()
+        if max_rank is not None:
+            max_rank = min(max_rank, len(df))
+            # Cut the dataframe to the first max_rank species
+            df = df.iloc[:max_rank]
+            selected_species = df['species'].tolist()
+        if write_csv:
             df.to_csv(output_path)
         return selected_species
     
 
 
-    def make_stacked_bar_plot(self, max_rank, category, by = 'mean', save_fig = True) -> None:
+    def plot_stackedbar(self, max_rank, category, by = 'mean', save_fig = True) -> None:
         """
         Makes stacked bar plot of counts aggregated by cathegory and saves pdf plots
-        as "Outputs/Inspection/{category}_stacked_{max_rank}_by_{by}.pdf"
+        as "Inspection_Outputs/Stacked/{category}_stacked_{max_rank}_by_{by}.pdf"
         """
 
         categories = ["Phylum", "Class", "Order", "Family", "Genus", "Species"]
@@ -352,10 +366,9 @@ class Mice_Inspection():
         assert by in ['median', 'mean'], "by must be 'median' or 'mean'"
 
         if save_fig:
-        # Check if the output directory exists, and create it if it doesn't
-            output_dir = "Outputs/Inspection"
-            os.makedirs(output_dir, exist_ok=True)
-            output_path = os.path.join(output_dir, f"{category}_stacked_{max_rank}_by_{by}.pdf")
+            dir = os.path.join(self.output_dir, "Stacked")
+            os.makedirs(dir, exist_ok=True)
+            output_path = os.path.join(dir, f"{category}_stacked_{max_rank}_by_{by}.pdf")
 
 
         selected_species = self.select_species(max_rank= max_rank, by= by)
@@ -464,19 +477,31 @@ class Mice_Inspection():
         return species_df
 
 
-    def plot_species(self, interpolate = 'none', species_list = ['Prevotella sp. Smarlab 121567'],  subjects = [1],  save_fig = False, output_dir = "Data/by_species") -> None:
+    def plot_species(self, interpolate: str = None, species_list = ['Prevotella sp. Smarlab 121567'],  subjects: list = None,  save_fig = False, output_dir = "Data/by_species") -> None:
         """
-        Makes time series plots. If save_fig is set to True, plot is saved as "Data/by_species/[num_species_across_page_X or name_across or name_mouse].pdf"
+        Makes time series plots. If save_fig is set to True,
+        plot is saved as "Inspection_Outputs/[num_species_across_page_X or name_across or name_mouse].pdf"
         Arguments
         - species: list of species names. each species gets a separate subplot.
         - subjects: list of subject indeces.
         """
         assert (isinstance(species_list, list)), "Species must be a list, like [Prevotella, Clostridium, Lactobacillus]"
-        assert (isinstance(subjects, list)), "Subjects must be a list, like [0, 1, 7]"
         
-        if not interpolate in ['splines', 'none']:
-            raise ValueError('Interpolate must be splines or none')
+        if subjects is None:
+            subjects = list(range(1, self.subjects + 1))
+        else:
+            assert (isinstance(subjects, list)), f"Subjects must be a list of integers in the range 1 (included) to {len(self.subjects)} (included)"
+            assert all(isinstance(n, int) for n in subjects), f"Subjects must be a list of integers in the range 1 (included) to {len(self.subjects)} (included)"
+            assert all(n <= self.subjects for n in subjects), f"Subjects must be a list of integers in the range 1 (included) to {len(self.subjects)} (included)"
 
+        if interpolate is not None:
+            assert interpolate in ['splines'], "parameter 'interpolate' must be 'splines' if selected"
+
+        if save_fig:
+            dir = os.path.join(self.output_dir, "Time_Series")
+            os.makedirs(dir, exist_ok=True)
+            output_path_beginning = os.path.join(output_dir, f"{len(species_list)}_species_{len(subjects)}_subjects")
+    
         mouse_columns = [f'mouse_{n}' for n in subjects if n < (self.subjects + 1)]
 
         num_species = len(species_list)
@@ -550,16 +575,7 @@ class Mice_Inspection():
                 axes[s].grid(True)
             plt.tight_layout(pad = 0.5, h_pad= 1, w_pad= 1) #space between edges of figure and edges of sublots
             if save_fig:
-                if not os.path.exists(output_dir):
-                    os.makedirs(output_dir)
-                if len(species) > 1 and len(subjects) == self.subjects:
-                    output_path = os.path.join(output_dir, f"{len(species_list)}_species_across_page_{n}.pdf")
-                elif len(species) == 1 and len(subjects) == self.subjects:
-                    output_path = os.path.join(output_dir, f"{species[0]}_across.pdf")
-                elif len(species) > 1 and len(subjects) == 1:
-                    output_path = os.path.join(output_dir, f"first_{num_species}_mouse_{subjects[0] + 1}.pdf")
-                else:
-                    output_path = os.path.join(output_dir, f"species_evolution.pdf")
+                output_path = f"{output_path_beginning}_page_{n + 1}.pdf"
                 plt.savefig(output_path)
                 print(f"saved as {output_path}")
         return
