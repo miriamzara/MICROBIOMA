@@ -1,0 +1,101 @@
+\makeatletter
+\newrobustcmd*{\parentexttrack}[1]{%
+  \begingroup
+  \blx@blxinit
+  \blx@setsfcodes
+  \blx@bibopenparen#1\blx@bibcloseparen
+  \endgroup}
+\AtEveryCite{%
+  \let\parentext=\parentexttrack%
+  \let\bibopenparen=\bibopenbracket%
+  \let\bibcloseparen=\bibclosebracket}
+\makeatother
+
+%%%%%%%%%%%%%%% head and foot notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagestyle{fancy}
+\fancyhf{} % Clear header and footer fields
+% Remove the header and footer lines
+\renewcommand{\headrulewidth}{0pt}
+%\renewcommand{\footrulewidth}{0pt}
+% Redefine the fancy style for chapters
+\fancypagestyle{plain}{
+  \fancyhf{} % Clear header and footer fields
+}
+% Set the page number to be displayed at the bottom right
+\rfoot{\thepage}
+
+% Set numbering for chapter head pages
+\fancypagestyle{plain}{% % <-- this is new
+  \fancyhf{} 
+  \fancyfoot[LE,RO]{\thepage} % same placement as with page style "fancy"
+  \renewcommand{\headrulewidth}{0pt}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% chapter head style %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[T1]{fontenc}
+\usepackage{titlesec}
+\newcommand{\chapnumfont}{%     % define font for chapter number
+  \usefont{T1}{pnc}{b}{n}%      % choose New Chancery, bold, normal shape
+  \fontsize{70}{100}%          % font size 100pt, baselineskip 100pt
+  \selectfont%                  % activate font
+}
+\colorlet{chapnumcol}{gray!75}  % color for chapter number
+
+\titleformat{\chapter}[display]
+{\filleft} % add \bfseries to chage font of chapter title to bold
+{\filleft\chapnumfont\textcolor{chapnumcol}{\thechapter}} 
+{-24pt}
+{\fontsize{24}{24}\selectfont}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt} % 
+% Customize table of contents 
+\usepackage{titletoc}
+
+\titlecontents{chapter}[1.5em]
+{\addvspace{1em}\bfseries}
+{\contentslabel{1.5em}}
+{}{\titlerule*[0pt]{.}\contentspage}
+
+\titlecontents{section}[3.em] %adjust indendation
+{\normalfont}
+{\contentslabel{1.5em}}
+{}{\titlerule*[8pt]{.}\contentspage}
+
+\titlecontents{subsection}[5.3em]
+{\normalfont}
+{\contentslabel{2.3em}}
+{}{\titlerule*[8pt]{.}\contentspage}
+
+
+%TEOREMI
+\usepackage{amsthm}
+\newtheoremstyle{a capo}% nome dello stile
+  {\topsep}% spazio sopra
+  {\topsep}% spazio sotto
+  {\itshape}% font del corpo
+  {}% indentazione del primo paragrafo
+  {\bfseries}% font dell'intestazione
+  {}% punteggiatura dopo l'intestazione
+  {\newline}% spazio dopo l'intestazione
+  {\thmname{#1}\thmnumber{ #2}\thmnote{ (#3)}}% formato dell'intestazione
+ \newtheoremstyle{due punti}% nome dello stile
+  {\topsep}% spazio sopra
+  {\topsep}% spazio sotto
+  {\itshape}% font del corpo
+  {}% indentazione del primo paragrafo
+  {\bfseries}% font dell'intestazione
+  {:}% punteggiatura dopo l'intestazione
+  { }% spazio dopo l'intestazione
+  {\thmname{#1}\thmnumber{ #2}\thmnote{ (#3)}}% formato dell'intestazione
+
+
+\newtheorem{df}{Definition}
+\newtheorem{pr}{Principle}
+\newtheorem{pro}{Proposition}
+\newtheorem{cor}{Corollary}
+\newtheorem{teo}{Theorem}
+\newtheorem{lemma}{Lemma}
+
+\counterwithin{df}{subsection}
+\counterwithin*{pr}{subsection}
+\counterwithin{pro}{subsection}
+\counterwithin{cor}{subsection}
+\counterwithin{teo}{subsection}
