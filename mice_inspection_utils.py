@@ -136,6 +136,14 @@ class Mice_Inspection():
             otus_to_species_dict[row['query']] = row['Species']
         self.os_dict = otus_to_species_dict
         self.species_list = list(set(otus_to_species_dict.values()))
+        # Fix species names
+        species_to_fix = ['Clostridium sp. M62/1', 'Clostridium sp. SS2/1', 'Cryobacterium aff. psychrophilum A1/C-aer/OI',
+                          'Hymenobacter sp. I/74-Cor2', 'Pseudoalteromonas sp. RE10F/2', 'Carnobacterium sp. 12266/2009']
+        # Find the index corresponding of species 'Clostridium sp. M62/1' inside species_list
+        for species in species_to_fix:
+            species_index = self.species_list.index(species)
+            species = species.replace("/", "_")
+            self.species_list[species_index] = species
         self.tot_species = len(list(set(otus_to_species_dict.values())))
         if verbose:
             print(f"number of species: {len(list(set(otus_to_species_dict.values())))}")
@@ -304,43 +312,36 @@ class Mice_Inspection():
             output_dir = os.path.join('Data', 'by_species')
             os.makedirs(output_dir, exist_ok=True)
             output_path = os.path.join('Data', 'by_species', f'{sorting_criterion}:{max_rank}_sorted.csv')
-        if not (isinstance(max_rank, int) and max_rank > 1):
-            raise ValueError("max rank must be a positive integer")
+        if not max_rank is None:
+            if not (isinstance(max_rank, int) and max_rank > 1):
+                raise ValueError("max rank must be a positive integer")
         if not sorting_criterion in ['mean', 'median']:
             raise ValueError("sorting criterion must be 'mean' or 'median'")
         
         species_data = []
-        if sorting_criterion == 'mean':
-            for species in self.species_list:
-                mean_counts = []
-                for mouse in range(self.subjects):
-                    # If the species appear, extract the mean (or median) count
-                    temp = self.mice_df[mouse][self.mice_df[mouse]['species'] == species]
-                    if not temp.empty:
-                        mean_counts.append(temp[sorting_criterion + '_counts'].iloc[0])
-                    else:
-                        mean_counts.append(0)
-                global_mean = np.mean(mean_counts)
-                species_data.append({'species': species, 'global_mean': global_mean, 'mean_subject_1': mean_counts[0], 'mean_subject_2': mean_counts[1], 'mean_subject_3': mean_counts[2], 'mean_subject_4': mean_counts[3], 'mean_subject_5': mean_counts[4], 'mean_subject_6': mean_counts[5], 'mean_subject_7': mean_counts[6], 'mean_subject_8': mean_counts[7]})
-                df = pd.DataFrame(species_data)
-                df.sort_values(by= 'global_mean', ascending=False, inplace=True)
-                df.reset_index(drop=True, inplace=True)
+        for species in self.species_list:
+            mean_counts = []
+            median_counts = []
+            for mouse in range(self.subjects):
+                # If the species appear, extract the mean and median count
+                temp = self.mice_df[mouse][self.mice_df[mouse]['species'] == species]
+                if not temp.empty:
+                    mean_counts.append(temp['mean_counts'].iloc[0])
+                    median_counts.append(temp['median_counts'].iloc[0])
+                else:
+                    mean_counts.append(0)
+                    median_counts.append(0)
+            global_mean = np.mean(mean_counts)
+            global_median = np.mean(median_counts)
+            species_data.append({'species': species, 'global_mean': global_mean, 'global_median': global_median})
+            df = pd.DataFrame(species_data)
 
         if sorting_criterion == 'median':
-            for species in self.species_list:
-                median_counts = []
-                for mouse in range(self.subjects):
-                    # If the species appear, extract the mean (or median) count
-                    temp = self.mice_df[mouse][self.mice_df[mouse]['species'] == species]
-                    if not temp.empty:
-                        median_counts.append(temp[sorting_criterion + '_counts'].iloc[0])
-                    else:
-                        median_counts.append(0)
-                global_median = np.median(median_counts)
-                species_data.append({'species': species, 'global_median': global_median, 'median_subject_1': median_counts[0], 'median_subject_2': median_counts[1], 'median_subject_3': median_counts[2], 'median_subject_4': median_counts[3], 'median_subject_5': median_counts[4], 'median_subject_6': median_counts[5], 'median_subject_7': median_counts[6], 'median_subject_8': median_counts[7]})
-                df = pd.DataFrame(species_data)
-                df.sort_values(by= 'global_median', ascending=False, inplace=True)
-                df.reset_index(drop=True, inplace=True)
+            df.sort_values(by= 'global_median', ascending=False, inplace=True)
+            df.reset_index(drop=True, inplace=True)
+        if sorting_criterion == 'mean':
+            df.sort_values(by= 'global_mean', ascending=False, inplace=True)
+            df.reset_index(drop=True, inplace=True)
                 
         selected_species = df['species'].tolist()
         if max_rank is not None:
@@ -350,6 +351,7 @@ class Mice_Inspection():
             selected_species = df['species'].tolist()
         if write_csv:
             df.to_csv(output_path)
+            print(f"Saved as {output_path}")
         return selected_species
     
 
@@ -457,11 +459,15 @@ class Mice_Inspection():
             if not df.empty:
                 for day in days:
                     if not day in df.columns  or df[day].empty:
-                        species_data.append({'day': day, f'mouse_{n + 1}': np.nan})
+                        species_data.append({'day': day, f'mouse_{n + 1}': 0})
                     else:
                         species_data.append({'day': day, f'mouse_{n + 1}': df[day].iloc[0]})
-                mouse_df_list.append(pd.DataFrame(species_data))
-                mouse_idxs_list.append(n+1)
+            # Handle the case where the species is not sampled for mouse n
+            else:
+                for day in days:
+                    species_data.append({'day': day, f'mouse_{n + 1}': 0})
+            mouse_df_list.append(pd.DataFrame(species_data))
+            mouse_idxs_list.append(n + 1)
         mouse_columns = [f'mouse_{a}' for a in mouse_idxs_list]
         species_df = mouse_df_list[0]
         for n in range(1,len(mouse_df_list)):
@@ -470,14 +476,13 @@ class Mice_Inspection():
         species_df = species_df.loc[:, ~species_df.columns.duplicated()]
         species_df['mean'] = species_df.loc[:, mouse_columns].mean(axis=1, skipna=True)
         species_df['std'] = species_df.loc[:, mouse_columns].std(axis=1, skipna=True)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, f"{species}.csv")
         species_df.to_csv(output_path)
         return species_df
 
 
-    def plot_species(self, interpolate: str = None, species_list = ['Prevotella sp. Smarlab 121567'],  subjects: list = None,  save_fig = False, output_dir = "Data/by_species") -> None:
+    def plot_species(self, interpolate: str = None, species_list = ['Prevotella sp. Smarlab 121567'],  subjects: list = None,  save_fig = False) -> None:
         """
         Makes time series plots. If save_fig is set to True,
         plot is saved as "Inspection_Outputs/[num_species_across_page_X or name_across or name_mouse].pdf"
@@ -498,6 +503,7 @@ class Mice_Inspection():
             assert interpolate in ['splines'], "parameter 'interpolate' must be 'splines' if selected"
 
         if save_fig:
+            output_dir = "Inspection_Outputs"
             dir = os.path.join(self.output_dir, "Time_Series")
             os.makedirs(dir, exist_ok=True)
             output_path_beginning = os.path.join(output_dir, f"{len(species_list)}_species_{len(subjects)}_subjects")
@@ -518,7 +524,7 @@ class Mice_Inspection():
             for j in range(num_species, len(axes)):
                 axes[j].axis('off')
             for s, species in enumerate(species_to_plot):
-                imput_path = os.path.join("Species_Data", f"{species}.csv")
+                imput_path = os.path.join("Data", "by_species", f"{species}.csv")
                 while not os.path.exists(imput_path):
                     species_df = self.get_species_df(species)
                 species_df = pd.read_csv(imput_path)
@@ -578,6 +584,7 @@ class Mice_Inspection():
                 output_path = f"{output_path_beginning}_page_{n + 1}.pdf"
                 plt.savefig(output_path)
                 print(f"saved as {output_path}")
+                plt.close()
         return
 
 
